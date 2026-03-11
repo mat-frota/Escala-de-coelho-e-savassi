@@ -153,7 +153,7 @@
                             
                             <div class="mt-4">
                                 <h4 class="font-medium mb-2">Classificação de Risco:</h4>
-                                <div id="riskClassification" class="risk-indicator rounded-lg p-4 text-center text-white font-bold text-xl uppercase tracking-wider shadow-md">
+                                <div id="riskClassification" class="risk-indicator rounded-lg p-4 text-center font-bold text-xl uppercase tracking-wider shadow-md">
                                     Não calculado
                                 </div>
                             </div>
@@ -217,7 +217,8 @@
                 
                 <div class="mt-6 bg-blue-50 p-4 rounded-lg">
                     <h4 class="font-semibold text-blue-800 mb-2">Classificação do Risco Familiar:</h4>
-                    <ul class="space-y-1">
+                    <ul class="space-y-1 text-gray-800">
+                        <li><span class="font-medium">Até 4 pontos:</span> R0 – Risco zero</li>
                         <li><span class="font-medium">5 ou 6 pontos:</span> R1 – Risco menor</li>
                         <li><span class="font-medium">7 ou 8 pontos:</span> R2 – Risco médio</li>
                         <li><span class="font-medium">Acima de 9 pontos:</span> R3 – Risco máximo</li>
@@ -225,7 +226,9 @@
                 </div>
             </div>
         </div>
-    </div> <div id="relatorioModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+    </div>
+
+    <div id="relatorioModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] pdf-expand flex flex-col fade-in">
             <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl modal-no-print">
                 <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-database text-blue-600 mr-2"></i>Banco de Dados - Famílias</h2>
@@ -389,24 +392,29 @@
             document.getElementById('scoreDetails').innerHTML = detailsHtml;
             
             const riskEl = document.getElementById('riskClassification');
-            riskEl.className = 'risk-indicator rounded-lg p-3 text-center text-white font-bold text-lg uppercase shadow-sm mt-2 ';
+            // Base visual do alerta (removido o text-white para poder usar cores dinâmicas no texto)
+            riskEl.className = 'risk-indicator rounded-lg p-3 text-center font-bold text-lg uppercase shadow-sm mt-2 ';
             
-            if (scoreAtual === 0) {
+            if (!hasCalculated) {
                 classificacaoAtual = 'Nenhum risco calculado';
-                corClassificacaoAtual = 'bg-gray-400';
+                corClassificacaoAtual = 'bg-gray-400 text-white';
+            } else if (scoreAtual <= 4) {
+                // NOVA REGRA: 0, 1, 2, 3 ou 4 vira R0 (Branco/Neutro)
+                classificacaoAtual = 'R0 - Risco zero';
+                corClassificacaoAtual = 'bg-white text-gray-800 border-2 border-gray-200';
             } else if (scoreAtual <= 6) {
                 classificacaoAtual = 'R1 - Risco menor';
-                corClassificacaoAtual = 'bg-green-500';
+                corClassificacaoAtual = 'bg-green-500 text-white';
             } else if (scoreAtual <= 8) {
                 classificacaoAtual = 'R2 - Risco médio';
-                corClassificacaoAtual = 'bg-yellow-500';
+                corClassificacaoAtual = 'bg-yellow-500 text-white';
             } else {
                 classificacaoAtual = 'R3 - Risco máximo';
-                corClassificacaoAtual = 'bg-red-500';
+                corClassificacaoAtual = 'bg-red-500 text-white';
             }
             
             riskEl.textContent = classificacaoAtual;
-            riskEl.classList.add(corClassificacaoAtual);
+            riskEl.classList.add(...corClassificacaoAtual.split(' '));
             
             if (hasCalculated) {
                 document.getElementById('detailedResults').style.display = 'flex';
@@ -425,7 +433,6 @@
             return { 
                 margin: 10, 
                 filename: nomeArquivo, 
-                // Aumentado a qualidade e o scale para a imagem não ficar opaca ou pixelada
                 image: { type: 'jpeg', quality: 1 }, 
                 html2canvas: { scale: 3, scrollY: 0, backgroundColor: '#ffffff', useCORS: true }, 
                 jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao },
@@ -433,7 +440,6 @@
             };
         }
 
-        // Baixa o PDF da ficha individual
         function baixarPDFFicha() {
             const nomeInput = document.getElementById('respNome').value.trim();
             const nomePDF = (nomeInput ? nomeInput : 'FICHA_FAMILIA').toUpperCase() + ' - ESCALA DE COELHO SAVASSI.pdf';
@@ -450,7 +456,6 @@
             });
         }
 
-        // Compartilha o PDF da ficha individual
         function compartilharPDFFicha() {
             const nomeInput = document.getElementById('respNome').value.trim();
             const nomePDF = (nomeInput ? nomeInput : 'FICHA_FAMILIA').toUpperCase() + ' - ESCALA DE COELHO SAVASSI.pdf';
@@ -480,7 +485,6 @@
             });
         }
 
-        // Baixa o PDF da lista geral
         function baixarListaRelatorio() {
             const tituloPDF = "RELATORIO GERAL DE FAMILIAS.pdf";
             const elemento = document.querySelector('#relatorioModal > div');
@@ -500,7 +504,6 @@
             });
         }
 
-        // Compartilha o PDF da lista geral
         function compartilharListaRelatorio() {
             const tituloPDF = "RELATORIO GERAL DE FAMILIAS.pdf";
             const elemento = document.querySelector('#relatorioModal > div');
@@ -585,14 +588,13 @@
                 const dadosInvertidos = [...bancoDeDados].reverse();
 
                 dadosInvertidos.forEach(familia => {
-                    // Forçando cores mais escuras no HTML da tabela para o PDF não ficar fraco
                     tabela.innerHTML += `
                         <tr class="hover:bg-gray-50 transition border-b">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${familia.dataCriacao}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900">${familia.nome}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-gray-800">${familia.score}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-center">
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full text-white ${familia.cor}">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${familia.cor}">
                                     ${familia.classificacao}
                                 </span>
                             </td>
